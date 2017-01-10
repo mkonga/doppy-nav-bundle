@@ -1,0 +1,28 @@
+services:
+    doppy_nav.provider:
+        class: Doppy\NavBundle\Provider\NavProvider
+        arguments:
+            - "@request_stack"
+            - "@?debug.stopwatch"
+
+    doppy_nav.provider.builder:
+        class:  Doppy\NavBundle\Provider\BuilderProvider
+        public: false
+        tags:
+            - { name: "doppy_nav.provider", priority: 100 }
+
+    doppy_nav.data_collector:
+        class:  Doppy\NavBundle\DataCollector\NavDataCollector
+        public: false
+        arguments:
+            - "@service_container"
+        tags:
+            - { name: data_collector, template: "DoppyNavBundle:profiler:nav.html.twig", id: "doppy_nav" }
+
+    doppy_nav.twig:
+        class: Doppy\NavBundle\Twig\NavExtension
+        arguments:
+            - "@doppy_nav.provider"
+            - "@?debug.stopwatch"
+        tags:
+            - { name: "twig.extension" }

@@ -1,0 +1,105 @@
+{% extends 'WebProfilerBundle:Profiler:layout.html.twig' %}
+
+{% block menu %}
+    <span class="label">
+        <span class="icon">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 24 24" enable-background="new 0 0 24 24" xml:space="preserve">
+                <path fill="#AAAAAA" d="M13,3v18c0,1.1-0.9,2-2,2s-2-0.9-2-2V3c0-1.1,0.9-2,2-2S13,1.9,13,3z M23.2,4.6l-1.8-1.4 C21.2,2.9,20.8,3,20.4,3h-1.3H14v2.1V8h5.1h1.3c0.4,0,0.8-0.3,1.1-0.5l1.8-1.6C23.6,5.6,23.6,4.9,23.2,4.6z M19.5,9.4 C19.2,9.1,18.8,9,18.4,9h-0.3H14v2.6V14h4.1h0.3c0.4,0,0.8-0.1,1.1-0.3l1.8-1.5c0.4-0.3,0.4-0.9,0-1.3L19.5,9.4z M3.5,7 C3.1,7,2.8,7,2.5,7.3L0.7,8.8c-0.4,0.3-0.4,0.9,0,1.3l1.8,1.6C2.8,11.9,3.1,12,3.5,12h0.3H8V9.4V7H3.9H3.5z"></path>
+            </svg>
+        </span>
+        <strong>Nav</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Requested Navs</h2>
+    {% if collector.data.providers.calls|length == 0 %}
+        <p class="empty">No nav's were requested.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Result</th>
+                <th>Duration</th>
+            </tr>
+
+            {% for call in collector.data.providers.calls %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ call.name }}</td>
+                    <td>{{ call.result }}</td>
+                    <td>{% if call.duration is not null %}{{ call.duration }}ms{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Rendered Navs</h2>
+    {% if collector.data.rendered is not defined %}
+        <p class="empty">Twig is not found, rendering is disabled.</p>
+    {% elseif collector.data.rendered|length == 0 %}
+        <p class="empty">No nav's were rendered.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Result</th>
+                <th>Duration</th>
+            </tr>
+
+            {% for call in collector.data.rendered %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ call.name }}</td>
+                    <td>{{ call.result }}</td>
+                    <td>{% if call.duration is not null %}{{ call.duration }}ms{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    {% if collector.data.providers.providers|length > 1 %}
+        {# only show providers when there is more than 1 configured #}
+        <h2>Providers</h2>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Service id</th>
+                <th>Cacheable</th>
+            </tr>
+
+            {% for provider in collector.data.providers.providers %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ provider.service_id }}</td>
+                    <td>{{ provider.cacheable ? "true" : "false" }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Builders</h2>
+    {% if collector.data.builders|length == 0 %}
+        <p class="empty">No builders were configured.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Cacheable</th>
+                <th>Requestcount</th>
+            </tr>
+
+        {% for builder in collector.data.builders %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ builder.name }}</td>
+                <td>{{ builder.cacheable ? "true" : "false" }}</td>
+                <td>{{ builder.requested }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}
