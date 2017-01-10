@@ -1,0 +1,28 @@
+{
+    "name"       : "doppy/nav-bundle",
+    "type"       : "symfony-bundle",
+    "description": "Bundle for providing menu's in your application.",
+    "keywords"   : [
+        "menu",
+        "nav",
+        "symfony"
+    ],
+    "license"    : "MIT",
+    "authors"    : [
+        {
+            "name" : "Daan van den Berg",
+            "email": "zawadi@doppy.nl"
+        }
+    ],
+    "require"    : {
+        "php"              : ">=5.6",
+        "symfony/symfony"  : "^3.1",
+        "doppy/util-bundle": "^1.3.0"
+    },
+    "autoload"   : {
+        "psr-4": {
+            "Doppy\\NavBundle\\": ""
+        }
+    }
+}
+
