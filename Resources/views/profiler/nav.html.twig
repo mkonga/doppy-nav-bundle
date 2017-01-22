@@ -21,6 +21,7 @@
                 <th>#</th>
                 <th>Name</th>
                 <th>Result</th>
+                <th>CacheKey</th>
                 <th>Duration</th>
             </tr>
 
@@ -29,6 +30,7 @@
                     <td>{{ loop.index }}</td>
                     <td>{{ call.name }}</td>
                     <td>{{ call.result }}</td>
+                    <td>{{ call.cachekey }}</td>
                     <td>{% if call.duration is not null %}{{ call.duration }}ms{% endif %}</td>
                 </tr>
             {% endfor %}
@@ -46,6 +48,7 @@
                 <th>#</th>
                 <th>Name</th>
                 <th>Result</th>
+                <th>CacheKey</th>
                 <th>Duration</th>
             </tr>
 
@@ -54,6 +57,7 @@
                     <td>{{ loop.index }}</td>
                     <td>{{ call.name }}</td>
                     <td>{{ call.result }}</td>
+                    <td>{{ call.cachekey }}</td>
                     <td>{% if call.duration is not null %}{{ call.duration }}ms{% endif %}</td>
                 </tr>
             {% endfor %}
@@ -74,7 +78,7 @@
                 <tr>
                     <td>{{ loop.index }}</td>
                     <td>{{ provider.service_id }}</td>
-                    <td>{{ provider.cacheable ? "true" : "false" }}</td>
+                    <td>{{ provider.cacheable ? "yes" : "no" }}</td>
                 </tr>
             {% endfor %}
         </table>
@@ -96,7 +100,7 @@
             <tr>
                 <td>{{ loop.index }}</td>
                 <td>{{ builder.name }}</td>
-                <td>{{ builder.cacheable ? "true" : "false" }}</td>
+                <td>{{ builder.cacheable }}</td>
                 <td>{{ builder.requested }}</td>
             </tr>
         {% endfor %}

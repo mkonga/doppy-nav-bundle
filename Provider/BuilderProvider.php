@@ -2,6 +2,7 @@
 
 namespace Doppy\NavBundle\Provider;
 
+use Doppy\NavBundle\Builder\AdvancedCacheableBuilderInterface;
 use Doppy\NavBundle\Builder\BuilderInterface;
 use Doppy\NavBundle\Builder\CacheableBuilderInterface;
 use Doppy\NavBundle\Exception\NavNotFoundException;
@@ -41,13 +42,27 @@ class BuilderProvider implements CacheableProviderInterface
         return $this->getBuilder($name)->getNav($options);
     }
 
+    public function isCacheable($name, $options = array())
+    {
+        return ($this->builders[$name] instanceof CacheableBuilderInterface);
+    }
+
     public function getCacheKeySuffix($name, $options = array())
     {
         $builder = $this->getBuilder($name);
-        if ($builder instanceof CacheableBuilderInterface) {
+        if ($builder instanceof AdvancedCacheableBuilderInterface) {
             return $builder->getCacheKeySuffix($options);
         }
         return null;
+    }
+
+    public function getCacheTags($name, $options = array())
+    {
+        $builder = $this->getBuilder($name);
+        if ($builder instanceof AdvancedCacheableBuilderInterface) {
+            return $builder->getCacheTags($options);
+        }
+        return [];
     }
 
     public function getBuilder($name)
@@ -71,7 +86,12 @@ class BuilderProvider implements CacheableProviderInterface
         foreach ($this->builders as $name => $builder) {
             $row['name']      = $name;
             $row['requested'] = isset($this->requested[$name]) ? $this->requested[$name] : 0;
-            $row['cacheable'] = ($builder instanceof CacheableBuilderInterface);
+            $row['cacheable'] = 'no';
+            if ($builder instanceof AdvancedCacheableBuilderInterface) {
+                $row['cacheable'] = 'advanced';
+            } elseif ($builder instanceof CacheableBuilderInterface) {
+                $row['cacheable'] = 'simple';
+            }
             $data[]           = $row;
         }
 

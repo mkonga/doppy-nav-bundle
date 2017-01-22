@@ -32,9 +32,4 @@ class ExampleBuilder implements CacheableBuilderInterface
         // return the object
         return $nav;
     }
-
-    public function getCacheKeySuffix($options = array())
-    {
-        return null;
-    }
 }

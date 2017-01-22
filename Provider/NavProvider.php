@@ -3,16 +3,17 @@
 namespace Doppy\NavBundle\Provider;
 
 use Doppy\NavBundle\Exception\NavNotFoundException;
+use Doppy\NavBundle\Nav\Nav;
 use Symfony\Component\Cache\Adapter\AbstractAdapter;
+use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Stopwatch\StopwatchEvent;
-use Psr\Cache\CacheItemPoolInterface;
 
 class NavProvider implements CacheableProviderInterface
 {
     /**
-     * @var ProviderInterface[]
+     * @var ProviderInterface|CacheableProviderInterface[]
      */
     protected $providers = array();
 
@@ -65,16 +66,41 @@ class NavProvider implements CacheableProviderInterface
         $this->providers[$service_id] = $provider;
     }
 
-    public function has($name)
+    /**
+     * @param string $name
+     *
+     * @return ProviderInterface|CacheableProviderInterface|null
+     */
+    protected function getProviderFor($name)
     {
         foreach ($this->providers as $provider) {
             if ($provider->has($name)) {
-                return true;
+                return $provider;
             }
+        }
+        return null;
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function has($name)
+    {
+        if ($this->getProviderFor($name)) {
+            return true;
         }
         return false;
     }
 
+    /**
+     * @param string $name
+     * @param array  $options
+     *
+     * @return Nav
+     * @throws NavNotFoundException
+     */
     public function get($name, $options = array())
     {
         $stopwatchName = 'Doppy\NavBundle\Provider:get(' . $name . ')';
@@ -83,87 +109,89 @@ class NavProvider implements CacheableProviderInterface
         // ensure locale is set as an option
         $options = $this->adjustOptions($options);
 
-        // maybe check cache
-        $cacheItem = $this->getCacheItem($name, $options);
-        if (($cacheItem) && ($cacheItem->isHit())) {
-            $this->addProfilerData('fromcache', $name);
-            $this->stopwatch->stop($stopwatchName);
-            return $cacheItem->get();
+        // get provider
+        $provider = $this->getProviderFor($name);
+        if (!$provider) {
+            throw new NavNotFoundException(
+                sprintf('None of the providers were able to provide the requested nav %s', $name)
+            );
         }
 
-        foreach ($this->providers as $provider) {
-            try {
-                // retrieve Nav
-                $nav      = $provider->get($name, $options);
-
-                // add some profiling
+        // maybe check cache
+        $cacheItem = false;
+        if (($this->cache) && ($provider instanceof CacheableProviderInterface) && ($provider->isCacheable($name))) {
+            $cacheItem = $this->cache->getItem($this->createCacheKey($provider, $name, $options));
+            if ($cacheItem->isHit()) {
                 $duration = $this->stopwatch->stop($stopwatchName);
-                $this->addProfilerData('success', $name, $duration);
-
-                // Save to cache when CacheItem is valid
-                if ($cacheItem) {
-                    $cacheItem->set($nav);
-                    $this->cache->save($cacheItem);
-                }
-
-                // return Nav
-                return $nav;
-            } catch (NavNotFoundException $e) {
-                // no action;
+                $this->addProfilerData('from cache', $name, $duration, $cacheItem);
+                return $cacheItem->get();
             }
         }
 
-        $duration = $this->stopwatch->stop($stopwatchName);
-        $this->addProfilerData('not found', $name, $duration);
-        throw new NavNotFoundException(
-            sprintf('None of the providers were able to provide the requested nav %s', $name)
-        );
-    }
+        // retrieve Nav
+        $nav = $provider->get($name, $options);
 
-    /**
-     * @param string $name
-     * @param array  $options
-     *
-     * @return CacheItemPoolInterface|null
-     */
-    protected function getCacheItem($name, $options = array())
-    {
-        // check if cache is available
-        if (!$this->cache) {
-            return null;
+        // Save to cache when CacheItem is valid
+        if ($cacheItem) {
+            $cacheItem->set($nav);
+            $cacheItem->tag($provider->getCacheTags($name, $options));
+            $this->cache->save($cacheItem);
         }
 
-        // determine cache key to use
-        $cacheKey = implode(
-            '-',
-            array(
-                'doppy_nav', 'nav',
-                $name, md5(serialize($options)),
-                $this->getCacheKeySuffix($name, $options)
-            )
-        );
-        return $this->cache->getItem($cacheKey);
+        // return Nav
+        $duration = $this->stopwatch->stop($stopwatchName);
+        $this->addProfilerData('provided', $name, $duration, $cacheItem);
+        return $nav;
     }
+
+    public function isCacheable($name, $options = array())
+    {
+        $options = $this->adjustOptions($options);
+
+        $provider = $this->getProviderFor($name);
+        if ($provider instanceof CacheableProviderInterface) {
+            return $provider->isCacheable($name, $options);
+        }
+        return false;
+    }
+
 
     public function getCacheKeySuffix($name, $options = array())
     {
         $options = $this->adjustOptions($options);
 
-        foreach ($this->providers as $provider) {
-            try {
-                if ($provider instanceof CacheableProviderInterface) {
-                    $cacheKey = $provider->getCacheKeySuffix($name, $options);
-                    if (!empty($cacheKey)) {
-                        return $cacheKey . '.nav.' . md5(serialize($options));
-                    }
-                }
-            } catch (NavNotFoundException $e) {
-                // no action;
-            }
+        $provider = $this->getProviderFor($name);
+        if ($provider instanceof CacheableProviderInterface) {
+            return $provider->getCacheKeySuffix($name, $options);
         }
+        return '';
+    }
 
-        // still here? guess no Provider can generate it or there is no cache key for it
-        return null;
+    public function getCacheTags($name, $options = array())
+    {
+        $options = $this->adjustOptions($options);
+
+        $provider = $this->getProviderFor($name);
+        if ($provider instanceof CacheableProviderInterface) {
+            return $provider->getCacheTags($name, $options);
+        }
+        return [];
+    }
+
+    /**
+     * Ensures the options has a _locale set
+     *
+     * @param array $options
+     *
+     * @return array
+     */
+    public function adjustOptions($options)
+    {
+        if (!isset($options['_locale'])) {
+            $options['_locale'] = $this->requestStack->getCurrentRequest()->get('_locale');
+            return $options;
+        }
+        return $options;
     }
 
     /**
@@ -186,32 +214,39 @@ class NavProvider implements CacheableProviderInterface
      * @param string         $result
      * @param string         $name
      * @param StopwatchEvent $duration
+     * @param CacheItem      $cacheItem
      */
-    private function addProfilerData($result, $name, $duration = null)
+    private function addProfilerData($result, $name, $duration = null, $cacheItem = null)
     {
-        $data['name']   = $name;
-        $data['result'] = $result;
-        if ($duration instanceof StopwatchEvent) {
+        $data['name']     = $name;
+        $data['result']   = $result;
+        $data['duration'] =  '';
+        if ($duration) {
             $data['duration'] = $duration->getDuration();
-        } else {
-            $data['duration'] = null;
+        }
+        $data['cachekey'] = '';
+        if ($cacheItem) {
+            $data['cachekey'] = $cacheItem->getKey();
         }
         $this->profilerData['calls'][] = $data;
     }
 
     /**
-     * Ensures the options has a _locale set
+     * @param CacheableProviderInterface $provider
+     * @param string                     $name
+     * @param array                      $options
      *
-     * @param array $options
-     *
-     * @return array
+     * @return string
      */
-    public function adjustOptions($options)
+    private function createCacheKey($provider, $name, $options)
     {
-        if (!isset($options['_locale'])) {
-            $options['_locale'] = $this->requestStack->getCurrentRequest()->get('_locale');
-            return $options;
-        }
-        return $options;
+        return implode(
+            '-',
+            array(
+                'doppy_nav', 'provide',
+                $name, md5(serialize($options)),
+                $provider->getCacheKeySuffix($name, $options)
+            )
+        );
     }
 }

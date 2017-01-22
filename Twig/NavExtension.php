@@ -2,19 +2,18 @@
 
 namespace Doppy\NavBundle\Twig;
 
+use Doppy\NavBundle\Provider\NavProvider;
 use Doppy\NavBundle\Provider\ProviderInterface;
 use Symfony\Component\Cache\Adapter\AbstractAdapter;
-use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Stopwatch\StopwatchEvent;
 use Psr\Cache\CacheItemPoolInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 class NavExtension extends \Twig_Extension
 {
     /**
-     * @var ProviderInterface
+     * @var NavProvider
      */
     protected $navProvider;
 
@@ -39,8 +38,8 @@ class NavExtension extends \Twig_Extension
      */
     public function __construct(ProviderInterface $navProvider, $stopwatch)
     {
-        $this->navProvider  = $navProvider;
-        $this->stopwatch    = $stopwatch;
+        $this->navProvider = $navProvider;
+        $this->stopwatch   = $stopwatch;
     }
 
     /**
@@ -70,9 +69,8 @@ class NavExtension extends \Twig_Extension
     }
 
     /**
-     * @param \Twig_Environment $twig
-     * @param string            $name
-     * @param array             $options
+     * @param string $name
+     * @param array  $options
      *
      * @throws \Exception
      * @return string
@@ -85,8 +83,8 @@ class NavExtension extends \Twig_Extension
     /**
      * @param \Twig_Environment $twig
      * @param string            $name
-     * @param array             $options
      * @param string            $template
+     * @param array             $navOptions
      * @param array             $templateParameters
      *
      * @return string
@@ -94,8 +92,8 @@ class NavExtension extends \Twig_Extension
     public function render(
         \Twig_Environment $twig,
         $name,
-        $options = array(),
         $template = 'DoppyNavBundle:Nav:nav.html.twig',
+        $navOptions = array(),
         $templateParameters = array()
     )
     {
@@ -104,18 +102,21 @@ class NavExtension extends \Twig_Extension
         $this->stopwatch->start($stopwatchName);
 
         // ensure locale is set as an option
-        $options = $this->navProvider->adjustOptions($options);
+        $navOptions = $this->navProvider->adjustOptions($navOptions);
 
         // maybe check cache
-        $cacheItem = $this->getCacheItem($name, $options, $template, $templateParameters);
-        if (($cacheItem) && ($cacheItem->isHit())) {
-            $this->addProfilerData('fromcache', $name);
-            $this->stopwatch->stop($stopwatchName);
-            return $cacheItem->get();
+        $cacheItem = false;
+        if (($this->cache) && ($this->navProvider->isCacheable($name, $navOptions))) {
+            $cacheItem = $this->cache->getItem($this->createCacheKey($name, $navOptions, $template, $templateParameters));
+            if ($cacheItem->isHit()) {
+                $duration = $this->stopwatch->stop($stopwatchName);
+                $this->addProfilerData('from cache', $name, $duration, $cacheItem);
+                return $cacheItem->get();
+            }
         }
 
         // retrieve nav
-        $nav = $this->navProvider->get($name, $options);
+        $nav = $this->navProvider->get($name, $navOptions);
 
         // now render
         $templateParameters['nav'] = $nav;
@@ -124,12 +125,13 @@ class NavExtension extends \Twig_Extension
         // Save to cache when CacheItem is valid
         if ($cacheItem) {
             $cacheItem->set($rendered);
+            $cacheItem->tag($this->navProvider->getCacheTags($name, $navOptions));
             $this->cache->save($cacheItem);
         }
 
         // return what was rendered
         $duration = $this->stopwatch->stop($stopwatchName);
-        $this->addProfilerData('rendered', $name, $duration);
+        $this->addProfilerData('rendered', $name, $duration, $cacheItem);
         return $rendered;
     }
 
@@ -170,15 +172,19 @@ class NavExtension extends \Twig_Extension
      * @param string         $result
      * @param string         $name
      * @param StopwatchEvent $duration
+     * @param CacheItem      $cacheItem
      */
-    private function addProfilerData($result, $name, $duration = null)
+    private function addProfilerData($result, $name, $duration = null, $cacheItem)
     {
-        $data['name']   = $name;
-        $data['result'] = $result;
+        $data['name']     = $name;
+        $data['result']   = $result;
+        $data['duration'] = '';
         if ($duration instanceof StopwatchEvent) {
             $data['duration'] = $duration->getDuration();
-        } else {
-            $data['duration'] = null;
+        }
+        $data['cachekey'] = '';
+        if ($cacheItem) {
+            $data['cachekey'] = $cacheItem->getKey();
         }
         $this->profilerData[] = $data;
     }
@@ -189,5 +195,26 @@ class NavExtension extends \Twig_Extension
     public function getProfilerData()
     {
         return $this->profilerData;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $options
+     * @param string $template
+     * @param array  $templateParameters
+     *
+     * @return string
+     */
+    private function createCacheKey($name, $options, $template, $templateParameters)
+    {
+        return implode(
+            '-',
+            array(
+                'doppy_nav', 'render',
+                $name,
+                md5(serialize([$options, $template, $templateParameters])),
+                $this->navProvider->getCacheKeySuffix($name, $options)
+            )
+        );
     }
 }

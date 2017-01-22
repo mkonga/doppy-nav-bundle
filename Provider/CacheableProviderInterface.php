@@ -7,6 +7,18 @@ use Doppy\NavBundle\Exception\NavNotFoundException;
 Interface CacheableProviderInterface extends ProviderInterface
 {
     /**
+     * Tells if the given Nav is cacheable.
+     *
+     * Even though the interface suggests the Nav is cacheable, a specific Nav may not be. Return false in those cases.
+     *
+     * @param string $name
+     * @param array  $options
+     *
+     * @return bool
+     */
+    public function isCacheable($name, $options = array());
+
+    /**
      * This method may return a part of string that should be part of the cache key (to make it unique)
      *
      * The name of the Nav and it's options are already used in the cache key. The parameter `_locale` is included it the options.
@@ -26,4 +38,13 @@ Interface CacheableProviderInterface extends ProviderInterface
      * @throws NavNotFoundException
      */
     public function getCacheKeySuffix($name, $options = array());
+
+    /**
+     * Returns a list of tags for Caching purposes
+     *
+     * @param array $options
+     *
+     * @return string[]
+     */
+    public function getCacheTags($name, $options = array());
 }
