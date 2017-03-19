@@ -1,3 +1,12 @@
+# 0.3.1
+
+* Add doppy/util-bundle version 2.0 is an allowed dependency, as it is compatible.
+* Adjust dependency for PHP to be more sensible.
+
+# 0.3.0
+
+* Remove service container from NavDataCollector service.
+
 # 0.2.0
 
 * Adds some caching functionality.
