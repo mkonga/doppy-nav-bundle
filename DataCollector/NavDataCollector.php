@@ -2,7 +2,9 @@
 
 namespace Doppy\NavBundle\DataCollector;
 
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Doppy\NavBundle\Provider\BuilderProvider;
+use Doppy\NavBundle\Provider\NavProvider;
+use Doppy\NavBundle\Twig\NavExtension;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
@@ -11,26 +13,37 @@ use Symfony\Component\HttpKernel\DataCollector\DataCollectorInterface;
 class NavDataCollector extends DataCollector implements DataCollectorInterface
 {
     /**
-     * @var ContainerInterface
+     * @var NavProvider
      */
-    protected $serviceContainer;
+    protected $navProvider;
 
     /**
-     * @var Feature
+     * @var BuilderProvider
+     */
+    protected $builderProvider;
+
+    /**
+     * @var NavExtension
+     */
+    protected $twigExtension;
+
+    /**
+     * @var array
      */
     protected $data = [];
 
     /**
-     * MenuDataCollector constructor.
+     * NavDataCollector constructor.
      *
-     * ServiceContainer is used as a dependency to solve a CyclicReference issue.
-     * As this is only used on dev, it is not too big of an issue.
-     *
-     * @param ContainerInterface $container
+     * @param NavProvider     $navProvider
+     * @param BuilderProvider $builderProvider
+     * @param NavExtension    $twigExtension
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(NavProvider $navProvider, BuilderProvider $builderProvider, NavExtension $twigExtension)
     {
-        $this->serviceContainer = $container;
+        $this->navProvider     = $navProvider;
+        $this->builderProvider = $builderProvider;
+        $this->twigExtension   = $twigExtension;
     }
 
     /**
@@ -42,19 +55,9 @@ class NavDataCollector extends DataCollector implements DataCollectorInterface
      */
     public function collect(Request $request, Response $response, \Exception $exception = null)
     {
-        // get info about providers
-        $navProvider             = $this->serviceContainer->get('doppy_nav.provider');
-        $this->data['providers'] = $navProvider->getProviderData();
-
-        // get info about builders
-        $builderProvider        = $this->serviceContainer->get('doppy_nav.provider.builder');
-        $this->data['builders'] = $builderProvider->getAvailableBuilders();
-
-        // twig extension
-        if ($this->serviceContainer->has('doppy_nav.twig')) {
-            $twigExtension          = $this->serviceContainer->get('doppy_nav.twig');
-            $this->data['rendered'] = $twigExtension->getProfilerData();
-        }
+        $this->data['providers'] = $this->navProvider->getProviderData();
+        $this->data['builders']  = $this->builderProvider->getAvailableBuilders();
+        $this->data['rendered']  = $this->twigExtension->getProfilerData();
     }
 
     /**

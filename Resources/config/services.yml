@@ -15,7 +15,9 @@ services:
         class:  Doppy\NavBundle\DataCollector\NavDataCollector
         public: false
         arguments:
-            - "@service_container"
+            - "@doppy_nav.provider"
+            - "@doppy_nav.provider.builder"
+            - "@doppy_nav.twig"
         tags:
             - { name: data_collector, template: "DoppyNavBundle:profiler:nav.html.twig", id: "doppy_nav" }
 

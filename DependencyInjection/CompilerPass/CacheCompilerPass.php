@@ -17,7 +17,7 @@ class CacheCompilerPass implements CompilerPassInterface
         }
         
         $renderCacheId = $container->getParameter('doppy_nav.cache.render');
-        if (($renderCacheId) && ($container->has('doppy_nav.twig'))) {
+        if ($renderCacheId) {
             $navExtensionDefintion = $container->getDefinition('doppy_nav.twig');
             $navExtensionDefintion->addMethodCall('setCache', [new Reference($renderCacheId)]);
         }
