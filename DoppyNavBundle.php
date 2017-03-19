@@ -5,8 +5,6 @@ namespace Doppy\NavBundle;
 use Doppy\NavBundle\DependencyInjection\CompilerPass\BuilderProviderCompilerPass;
 use Doppy\NavBundle\DependencyInjection\CompilerPass\CacheCompilerPass;
 use Doppy\NavBundle\DependencyInjection\CompilerPass\ChainProviderCompilerPass;
-use Doppy\RoutingBundle\DependencyInjection\CompilerPass\ChainRouterCompilerPass;
-use Doppy\RoutingBundle\DependencyInjection\CompilerPass\ReplaceRouterCompilerPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
