@@ -19,14 +19,11 @@ A Symfony3 bundle providing some useful tools to create menu's and make them cac
     {
         $bundles = array(
             // ...
-            new Doppy\UtilBundle\DoppyUtilBundle(),
             new Doppy\NavBundle\DoppyNavBundle(),
             // ...
         );
     }
 ````
-
-The DoppyUtilBundle also needs to be loaded for some small dependencies and simplification of service definitions.
 
 ## Create your own NavBuilder
 

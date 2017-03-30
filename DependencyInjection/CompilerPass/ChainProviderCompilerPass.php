@@ -2,42 +2,52 @@
 
 namespace Doppy\NavBundle\DependencyInjection\CompilerPass;
 
-use Doppy\UtilBundle\Helper\CompilerPass\BaseTagServiceCompilerPass;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class ChainProviderCompilerPass extends BaseTagServiceCompilerPass implements CompilerPassInterface
+class ChainProviderCompilerPass implements CompilerPassInterface
 {
-    protected function handleTag(
-        ContainerBuilder $containerBuilder,
-        Definition $serviceDefinition,
-        Reference $taggedServiceReference,
-        $attributes
-    )
+    public function process(ContainerBuilder $containerBuilder)
     {
-        $serviceDefinition->addMethodCall('addProvider', array($taggedServiceReference, $attributes['service_id']));
+        $providerDefinition = $containerBuilder->findDefinition('doppy_nav.provider');
+        $taggedProviders    = $this->getTaggedProviders($containerBuilder);
+
+        foreach ($taggedProviders as $priority => $taggedProvider) {
+            // make provider lazy
+            $taggedProviderDefinition = $containerBuilder->getDefinition($taggedProvider['service_id']);
+            $taggedProviderDefinition->setLazy(true);
+
+            // add to provider
+            $providerDefinition->addMethodCall(
+                'addProvider',
+                array(new Reference($taggedProvider['service_id']), $taggedProvider['service_id'])
+            );
+        }
     }
 
-    protected function getService(ContainerBuilder $containerBuilder)
+    /**
+     * @param ContainerBuilder $containerBuilder
+     *
+     * @return array
+     */
+    protected function getTaggedProviders(ContainerBuilder $containerBuilder)
     {
-        return $containerBuilder->findDefinition('doppy_nav.provider');
-    }
-
-    protected function getTaggedServices(ContainerBuilder $containerBuilder)
-    {
-        return $containerBuilder->findTaggedServiceIds('doppy_nav.provider');
-    }
-
-    protected function configureOptionsResolver(OptionsResolver $optionsResolver)
-    {
-        parent::configureOptionsResolver($optionsResolver);
-    }
-
-    protected function adjustTaggedService(Definition $definition)
-    {
-        $definition->setLazy(true);
+        $services = array();
+        foreach ($containerBuilder->findTaggedServiceIds('doppy_nav.provider') as $serviceId => $tags) {
+            foreach ($tags as $attributes) {
+                // determine priority
+                $attributes['priority']              = isset($attributes['priority']) ? $attributes['priority'] : 0;
+                $services[$attributes['priority']][] = array('service_id' => $serviceId, 'attributes' => $attributes);
+            }
+        }
+        krsort($services);
+        $returnServices = [];
+        foreach ($services as $nested) {
+            foreach ($nested as $service) {
+                $returnServices[] = $service;
+            }
+        }
+        return $returnServices;
     }
 }

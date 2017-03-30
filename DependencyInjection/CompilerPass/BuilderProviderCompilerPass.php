@@ -2,45 +2,68 @@
 
 namespace Doppy\NavBundle\DependencyInjection\CompilerPass;
 
-use Doppy\UtilBundle\Helper\CompilerPass\BaseTagServiceCompilerPass;
+use Doppy\NavBundle\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class BuilderProviderCompilerPass extends BaseTagServiceCompilerPass implements CompilerPassInterface
+class BuilderProviderCompilerPass implements CompilerPassInterface
 {
-    protected function handleTag(
-        ContainerBuilder $containerBuilder,
-        Definition $serviceDefinition,
-        Reference $taggedServiceReference,
-        $attributes
-    )
+    public function process(ContainerBuilder $containerBuilder)
     {
-        $serviceDefinition->addMethodCall('addBuilder', array($attributes['provides'], $taggedServiceReference));
+        $providerBuilderDefinition = $containerBuilder->findDefinition('doppy_nav.provider.builder');
+        $taggedBuilders            = $this->getTaggedBuilders($containerBuilder);
+
+        foreach ($taggedBuilders as $priority => $taggedBuilder) {
+            // check attribute
+            if (!isset($taggedBuilder['attributes']['provides'])) {
+                throw $this->createInvalidArgumentException($taggedBuilder['service_id']);
+            }
+
+            $providerBuilderDefinition->addMethodCall(
+                'addBuilder',
+                array($taggedBuilder['attributes']['provides'], new Reference($taggedBuilder['service_id']))
+            );
+        }
     }
 
-    protected function getService(ContainerBuilder $containerBuilder)
+    /**
+     * @param ContainerBuilder $containerBuilder
+     *
+     * @return array
+     */
+    protected function getTaggedBuilders(ContainerBuilder $containerBuilder)
     {
-        return $containerBuilder->findDefinition('doppy_nav.provider.builder');
+        $services = array();
+        foreach ($containerBuilder->findTaggedServiceIds('doppy_nav.builder') as $serviceId => $tags) {
+            foreach ($tags as $attributes) {
+                // determine priority
+                $attributes['priority']              = isset($attributes['priority']) ? $attributes['priority'] : 0;
+                $services[$attributes['priority']][] = array('service_id' => $serviceId, 'attributes' => $attributes);
+            }
+        }
+        krsort($services);
+        $returnServices = [];
+        foreach ($services as $nested) {
+            foreach ($nested as $service) {
+                $returnServices[] = $service;
+            }
+        }
+        return $returnServices;
     }
 
-    protected function getTaggedServices(ContainerBuilder $containerBuilder)
+    /**
+     * Creates an exception
+     *
+     * @param string $serviceId
+     *
+     * @return InvalidConfigurationException
+     */
+    private function createInvalidArgumentException($serviceId)
     {
-        return $containerBuilder->findTaggedServiceIds('doppy_nav.builder');
+        return new InvalidConfigurationException(
+            sprintf('Required attribute "provides" is missing on tag "doppy_nav.builder" for service "%s".', $serviceId)
+        );
     }
 
-    protected function configureOptionsResolver(OptionsResolver $optionsResolver)
-    {
-        parent::configureOptionsResolver($optionsResolver);
-
-        $optionsResolver->setRequired('provides');
-        $optionsResolver->addAllowedTypes('provides', 'string');
-    }
-
-    protected function adjustTaggedService(Definition $definition)
-    {
-        $definition->setLazy(true);
-    }
 }
