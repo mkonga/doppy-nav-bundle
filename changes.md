@@ -1,3 +1,8 @@
+# 0.4.1
+
+* Adjusted DataCollector to be compatible with Symfony 4
+* Adjusted composer.json for Symfony 4
+
 # 0.4.0
 
 * Removed dependency to doppy/util-bundle completely, as it is no longer needed.

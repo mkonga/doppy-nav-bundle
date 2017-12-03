@@ -71,6 +71,14 @@ class NavDataCollector extends DataCollector implements DataCollectorInterface
     }
 
     /**
+     * Clears data from DataCollector
+     */
+    public function reset()
+    {
+        $this->data = array();
+    }
+
+    /**
      * Returns the name of the data collector.
      *
      * @return string
