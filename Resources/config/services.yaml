@@ -1,6 +1,7 @@
 services:
     doppy_nav.provider:
         class: Doppy\NavBundle\Provider\NavProvider
+        public: true
         arguments:
             - "@request_stack"
             - "@?debug.stopwatch"

@@ -1,29 +1,16 @@
 # Doppy Nav Bundle
 
-A Symfony3 bundle providing some useful tools to create menu's and make them cacheable.
+A Symfony bundle providing some useful tools to create menu's and make them cacheable.
 
 ## installation
 
 ### add to composer
 
 ````
-    "require": {
-        "doppy/nav-bundle": "^1.0.0",
-    }
+    composer req doppy/nav-bundle
 ````
-
-### add to AppKernel
-
-````
-    public function registerBundles()
-    {
-        $bundles = array(
-            // ...
-            new Doppy\NavBundle\DoppyNavBundle(),
-            // ...
-        );
-    }
-````
+And make sure the bundle is registered.
+At the moment there is no recipe for symfony flex, but the default recipe should suffice in most situations.
 
 ## Create your own NavBuilder
 
@@ -33,8 +20,7 @@ Configure your service in symfony, adding a simple tag to make it available:
 
 ````
 services:
-    my_bundle.nav.sidebar.builder:
-        class: \My\MyBundle\NavBuilder\SideBarBuilder
+    \App\NavBuilder\SideBarBuilder:
         tags:
             - { name: "doppy_nav.builder", provides: "sidebar" }
 ````
@@ -121,13 +107,12 @@ A suffix will be appended to your cachekey, this is constructed from:
 * Builder:
 * * An md5 hash of the options provided.
 * Render:
-* * Whatever hash the provider supplies (this will also include )
+* * Whatever hash the provider supplies
 * * An md5 hash of the template and template options provided.
 
 ### Invalidation
 
 At the moment there is no cache invalidation configured. You just need to wait until it expires, or clear all symfony caches.
-
 
 ## Advanced: Create your own provider
 

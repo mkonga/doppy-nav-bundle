@@ -29,5 +29,8 @@ class DoppyNavExtension extends Extension
         // basic services
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
+
+        // auto tags
+        $container->registerForAutoconfiguration(ProviderInterface::class)->addTag('doppy_nav.provider');
     }
 }

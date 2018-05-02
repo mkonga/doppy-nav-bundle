@@ -1,3 +1,9 @@
+# 0.5.0
+
+* Added support for Symfony 4
+* Fixed dependencies to make more sense.
+* Made the tag "doppy_nav.provider" work with autowire. 
+
 # 0.4.1
 
 * Adjusted DataCollector to be compatible with Symfony 4
