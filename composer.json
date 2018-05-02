@@ -1,31 +1,31 @@
 {
-    "name"       : "doppy/nav-bundle",
-    "type"       : "symfony-bundle",
+    "name": "doppy/nav-bundle",
+    "type": "symfony-bundle",
     "description": "Bundle for providing menu's in your application.",
-    "keywords"   : [
+    "keywords": [
         "menu",
         "nav",
         "symfony"
     ],
-    "license"    : "MIT",
-    "authors"    : [
+    "license": "MIT",
+    "authors": [
         {
-            "name" : "Daan van den Berg",
+            "name": "Daan van den Berg",
             "email": "zawadi@doppy.nl"
         }
     ],
-    "require"    : {
-        "php"              : "^5.6|^7.0",
-        "symfony/symfony"  : "^3.1|^4.0"
+    "require": {
+        "php": "^7.0",
+        "symfony/framework-bundle": "^4.0",
+        "twig/twig": "^2.4"
     },
-    "suggest"    : {
-        "symfony/twig-bundle": "^3.1.0|^4.0",
-        "symfony/cache"      : "^3.1.0|^4.0"
+    "suggest": {
+        "symfony/cache": "For caching of generated Nav's",
+        "symfony/stopwatch": "For timing information in the profiler (dev only)"
     },
-    "autoload"   : {
+    "autoload": {
         "psr-4": {
             "Doppy\\NavBundle\\": ""
         }
     }
 }
-

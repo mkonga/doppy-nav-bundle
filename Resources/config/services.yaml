@@ -19,7 +19,7 @@ services:
             - "@doppy_nav.provider.builder"
             - "@doppy_nav.twig"
         tags:
-            - { name: data_collector, template: "DoppyNavBundle:profiler:nav.html.twig", id: "doppy_nav" }
+            - { name: data_collector, template: "@DoppyNav/profiler/nav.html.twig", id: "doppy_nav" }
 
     doppy_nav.twig:
         class: Doppy\NavBundle\Twig\NavExtension

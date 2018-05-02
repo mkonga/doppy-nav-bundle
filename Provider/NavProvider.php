@@ -104,7 +104,7 @@ class NavProvider implements CacheableProviderInterface
     public function get($name, $options = array())
     {
         $stopwatchName = 'Doppy\NavBundle\Provider:get(' . $name . ')';
-        $this->stopwatch->start($stopwatchName);
+        $this->stopwatch && $this->stopwatch->start($stopwatchName);
 
         // ensure locale is set as an option
         $options = $this->adjustOptions($options);
@@ -122,7 +122,7 @@ class NavProvider implements CacheableProviderInterface
         if (($this->cache) && ($provider instanceof CacheableProviderInterface) && ($provider->isCacheable($name))) {
             $cacheItem = $this->cache->getItem($this->createCacheKey($provider, $name, $options));
             if ($cacheItem->isHit()) {
-                $duration = $this->stopwatch->stop($stopwatchName);
+                $duration = $this->stopwatch ? $this->stopwatch->stop($stopwatchName) : -1;
                 $this->addProfilerData('from cache', $name, $duration, $cacheItem);
                 return $cacheItem->get();
             }
@@ -139,7 +139,7 @@ class NavProvider implements CacheableProviderInterface
         }
 
         // return Nav
-        $duration = $this->stopwatch->stop($stopwatchName);
+        $duration = $this->stopwatch ? $this->stopwatch->stop($stopwatchName) : -1;
         $this->addProfilerData('provided', $name, $duration, $cacheItem);
         return $nav;
     }

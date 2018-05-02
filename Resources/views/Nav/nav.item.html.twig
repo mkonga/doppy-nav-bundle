@@ -2,7 +2,7 @@
 <li>
     <a href="{{ item.url }}"{% if item.target %} target="{{ item.target }}"{% endif %}>{{ item.label }}</a>
     {% if item.hasChildren %}
-        {% include "DoppyNavBundle:Nav:nav.items.html.twig" with { "items": item.children } only %}
+        {% include "@DoppyNav/Nav/nav.items.html.twig" with { "items": item.children } only %}
     {% endif -%}
 </li>
 {% endspaceless %}

@@ -2,6 +2,7 @@
 
 namespace Doppy\NavBundle\Twig;
 
+use Doppy\NavBundle\Exception\NavNotFoundException;
 use Doppy\NavBundle\Provider\NavProvider;
 use Doppy\NavBundle\Provider\ProviderInterface;
 use Symfony\Component\Cache\Adapter\AbstractAdapter;
@@ -9,8 +10,10 @@ use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Stopwatch\StopwatchEvent;
 use Psr\Cache\CacheItemPoolInterface;
+use Twig\Extension\AbstractExtension;
+use Twig\TwigFunction;
 
-class NavExtension extends \Twig_Extension
+class NavExtension extends AbstractExtension
 {
     /**
      * @var NavProvider
@@ -56,8 +59,8 @@ class NavExtension extends \Twig_Extension
     public function getFunctions()
     {
         return array(
-            new \Twig_SimpleFunction('doppy_nav', array($this, 'get')),
-            new \Twig_SimpleFunction(
+            new TwigFunction('doppy_nav', array($this, 'get')),
+            new TwigFunction(
                 'doppy_nav_render',
                 array($this, 'render'),
                 array(
@@ -82,12 +85,17 @@ class NavExtension extends \Twig_Extension
 
     /**
      * @param \Twig_Environment $twig
-     * @param string            $name
-     * @param string            $template
-     * @param array             $navOptions
-     * @param array             $templateParameters
+     * @param string $name
+     * @param string $template
+     * @param array $navOptions
+     * @param array $templateParameters
      *
      * @return string
+     * @throws NavNotFoundException
+     * @throws \Psr\Cache\InvalidArgumentException
+     * @throws \Twig_Error_Loader
+     * @throws \Twig_Error_Runtime
+     * @throws \Twig_Error_Syntax
      */
     public function render(
         \Twig_Environment $twig,
@@ -99,7 +107,7 @@ class NavExtension extends \Twig_Extension
     {
         // start stopwatch
         $stopwatchName = 'DoppyNav\Twig:Render(' . $name . ')';
-        $this->stopwatch->start($stopwatchName);
+        $this->stopwatch && $this->stopwatch->start($stopwatchName);
 
         // ensure locale is set as an option
         $navOptions = $this->navProvider->adjustOptions($navOptions);
@@ -109,7 +117,7 @@ class NavExtension extends \Twig_Extension
         if (($this->cache) && ($this->navProvider->isCacheable($name, $navOptions))) {
             $cacheItem = $this->cache->getItem($this->createCacheKey($name, $navOptions, $template, $templateParameters));
             if ($cacheItem->isHit()) {
-                $duration = $this->stopwatch->stop($stopwatchName);
+                $duration = $this->stopwatch ? $this->stopwatch->stop($stopwatchName) : -1;
                 $this->addProfilerData('from cache', $name, $duration, $cacheItem);
                 return $cacheItem->get();
             }
@@ -130,18 +138,20 @@ class NavExtension extends \Twig_Extension
         }
 
         // return what was rendered
-        $duration = $this->stopwatch->stop($stopwatchName);
+        $duration = $this->stopwatch ? $this->stopwatch->stop($stopwatchName) : -1;
         $this->addProfilerData('rendered', $name, $duration, $cacheItem);
         return $rendered;
     }
 
     /**
      * @param string $name
-     * @param array  $options
+     * @param array $options
      * @param string $template
-     * @param array  $templateParameters
+     * @param array $templateParameters
      *
      * @return CacheItemPoolInterface|null
+     * @throws NavNotFoundException
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     protected function getCacheItem($name, $options, $template, $templateParameters)
     {
@@ -161,11 +171,6 @@ class NavExtension extends \Twig_Extension
             )
         );
         return $this->cache->getItem($cacheKey);
-    }
-
-    public function getName()
-    {
-        return 'doppy_nav';
     }
 
     /**
@@ -199,11 +204,12 @@ class NavExtension extends \Twig_Extension
 
     /**
      * @param string $name
-     * @param array  $options
+     * @param array $options
      * @param string $template
-     * @param array  $templateParameters
+     * @param array $templateParameters
      *
      * @return string
+     * @throws NavNotFoundException
      */
     private function createCacheKey($name, $options, $template, $templateParameters)
     {

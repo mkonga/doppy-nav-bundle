@@ -1,7 +1,7 @@
 {% spaceless %}
 <ul>
     {% for item in items %}
-        {% include "DoppyNavBundle:Nav:nav.item.html.twig" with { "item": item } only %}
+        {% include "@DoppyNav/Nav/nav.item.html.twig" with { "item": item } only %}
     {% endfor %}
 </ul>
 {% endspaceless %}

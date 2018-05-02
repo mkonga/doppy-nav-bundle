@@ -27,7 +27,7 @@ class ExampleBuilder implements CacheableBuilderInterface
         $nav = new Nav();
 
         // add some items
-        $nav->addChild(new NavItem($this->router->generate('login', 'Log in')));
+        $nav->addChild(new NavItem($this->router->generate('login'), 'Log in'));
 
         // return the object
         return $nav;
