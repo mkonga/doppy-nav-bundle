@@ -1,6 +1,7 @@
 {
     "name": "doppy/nav-bundle",
     "type": "symfony-bundle",
+    "abandoned"  : true,
     "description": "Bundle for providing menu's in your application.",
     "keywords": [
         "menu",
